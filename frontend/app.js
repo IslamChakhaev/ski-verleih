@@ -134,16 +134,51 @@ function fillSelect(select, items, toLabel, emptyLabel) {
 
 // ---------- Forms ----------
 
+// showFormError shows an error inside the dialog, because the page-level
+// message would be hidden behind an open dialog.
+function showFormError(form, text) {
+  const box = form.querySelector(".form-error");
+  box.textContent = text;
+  box.hidden = text === "";
+  if (text) {
+    box.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function openDialog(form) {
+  hideMessage();
+  showFormError(form, "");
+  const dialog = form.closest("dialog");
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+}
+
+// restoreFocus moves focus back to the page if a list refresh removed the
+// focused button. It does not scroll, so mouse users stay where they are.
+function restoreFocus() {
+  if (document.activeElement === document.body) {
+    document.querySelector(".view:not([hidden]) .page-header .button").focus({ preventScroll: true });
+  }
+}
+
+async function finishDialog(form, message) {
+  form.closest("dialog").close();
+  showMessage(message, "success");
+  await refreshView();
+  restoreFocus();
+}
+
 // handleSubmit checks that the form is complete, runs action and reports
 // errors. It only checks the input format; the backend makes the final decision.
 function handleSubmit(form, action) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    hideMessage();
+    showFormError(form, "");
 
     const invalidField = [...form.elements].find((field) => !field.checkValidity());
     if (invalidField) {
-      showMessage(invalidField.dataset.error, "error");
+      showFormError(form, invalidField.dataset.error);
       invalidField.focus();
       return;
     }
@@ -153,73 +188,53 @@ function handleSubmit(form, action) {
     try {
       await action(Object.fromEntries(new FormData(form)));
     } catch (error) {
-      showMessage(error.message, "error");
+      showFormError(form, error.message);
     } finally {
       submitButton.disabled = false;
     }
   });
 }
 
-// createEditableForm connects a form that both creates and edits an item.
-// toBody turns form values into the request body, and toFormValues does the
-// opposite for the item being edited.
+// createEditableForm connects a dialog form that both creates and edits an item.
+// Calling open() starts a new item, and open(item) edits that item. toBody turns
+// form values into the request body; toFormValues does the opposite.
 function createEditableForm({ formId, path, noun, toBody = (values) => values, toFormValues = (item) => item }) {
   const form = byId(formId);
   const title = form.querySelector("h2");
   const submitButton = form.querySelector("[type=submit]");
-  const cancelButton = form.querySelector("[data-cancel]");
   const createTitle = title.textContent;
   const createLabel = submitButton.textContent;
   let editingId = null;
 
-  function stopEditing() {
-    if (editingId === null) {
-      return;
-    }
-    editingId = null;
+  function open(item = null) {
+    editingId = item?.id ?? null;
     form.reset();
-    form.classList.remove("editing");
-    title.textContent = createTitle;
-    submitButton.textContent = createLabel;
-    cancelButton.hidden = true;
-  }
-
-  function startEditing(item) {
-    editingId = item.id;
-    const values = toFormValues(item);
-    for (const field of form.elements) {
-      if (field.name) {
-        field.value = values[field.name];
+    if (item) {
+      const values = toFormValues(item);
+      for (const field of form.elements) {
+        if (field.name) {
+          field.value = values[field.name];
+        }
       }
     }
-    form.classList.add("editing");
-    title.textContent = `${noun} bearbeiten`;
-    submitButton.textContent = "Änderungen speichern";
-    cancelButton.hidden = false;
-    form.scrollIntoView({ block: "nearest" });
-    form.elements[0].focus();
+    form.classList.toggle("editing", item !== null);
+    title.textContent = item ? `${noun} bearbeiten` : createTitle;
+    submitButton.textContent = item ? "Änderungen speichern" : createLabel;
+    openDialog(form);
   }
-
-  cancelButton.addEventListener("click", () => {
-    stopEditing();
-    form.elements[0].focus(); // The focused cancel button is now hidden.
-  });
 
   handleSubmit(form, async (values) => {
     const body = toBody(values);
     if (editingId === null) {
       await sendJSON(path, "POST", body);
-      form.reset();
-      showMessage(`${noun} angelegt.`, "success");
+      await finishDialog(form, `${noun} angelegt.`);
     } else {
       await sendJSON(`${path}/${editingId}`, "PUT", body);
-      stopEditing();
-      showMessage("Änderungen gespeichert.", "success");
+      await finishDialog(form, "Änderungen gespeichert.");
     }
-    await refreshView();
   });
 
-  return { startEditing, stopEditing };
+  return { open };
 }
 
 const skiForm = createEditableForm({ formId: "ski-form", path: "/api/skis", noun: "Ski" });
@@ -260,7 +275,7 @@ async function loadSkis() {
     String(ski.id),
     ski.name,
     ski.available ? badge("Verfügbar", "available") : badge("Ausgeliehen", "rented"),
-    actionButton("Bearbeiten", () => skiForm.startEditing(ski)),
+    actionButton("Bearbeiten", () => skiForm.open(ski)),
   ]), "Noch keine Ski angelegt.");
 }
 
@@ -271,7 +286,7 @@ async function loadCustomers() {
     customer.name,
     customer.idType,
     customer.idNumber,
-    actionButton("Bearbeiten", () => customerForm.startEditing(customer)),
+    actionButton("Bearbeiten", () => customerForm.open(customer)),
   ]), "Noch keine Personen registriert.");
 }
 
@@ -281,7 +296,7 @@ async function loadTariffs() {
     String(tariff.id),
     tariff.name,
     noWrap(`${formatEuro(tariff.hourlyPriceCents)} / Std.`),
-    actionButton("Bearbeiten", () => tariffForm.startEditing(tariff)),
+    actionButton("Bearbeiten", () => tariffForm.open(tariff)),
   ]), "Noch keine Tarife angelegt.");
 }
 
@@ -309,42 +324,49 @@ async function returnRental(rental, button) {
     showMessage(error.message, "error");
   }
   await refreshView();
+  restoreFocus();
 }
 
 async function loadRentals() {
-  const [rentals, customers, skis, tariffs] = await Promise.all([
-    api("/api/rentals"),
-    api("/api/customers"),
-    api("/api/skis"),
-    api("/api/tariffs"),
-  ]);
-
-  const { elements } = byId("rental-form");
-  fillSelect(elements.customerId, customers, (customer) => `${customer.name} (${customer.idNumber})`, "Keine Personen registriert");
-  fillSelect(elements.skiId, skis.filter((ski) => ski.available), (ski) => `${ski.id}: ${ski.name}`, "Kein Ski verfügbar");
-  fillSelect(elements.tariffId, tariffs, (tariff) => `${tariff.name} (${formatEuro(tariff.hourlyPriceCents)} / Std.)`, "Keine Tarife angelegt");
-  if (!elements.start.value) {
-    setStartToNow();
-  }
-  updatePricePreview();
-
+  const rentals = await api("/api/rentals");
   const active = rentals.filter((rental) => rental.active);
   const completed = rentals.filter((rental) => !rental.active).reverse();
 
+  byId("active-rental-count").textContent = active.length;
+  byId("completed-rental-count").textContent = completed.length;
+
   renderRows(byId("active-rental-rows"), active.map((rental) => [
     ...rentalCells(rental),
-    badge("Aktiv", "active"),
     actionButton("Zurückgeben", (button) => returnRental(rental, button)),
   ]), "Zurzeit sind keine Ski ausgeliehen.");
 
   renderRows(byId("completed-rental-rows"), completed.map((rental) => [
     ...rentalCells(rental),
-    badge("Zurückgegeben", "completed"),
     noWrap(formatDate(rental.returnedAt)),
   ]), "Noch keine abgeschlossenen Ausleihen.");
 }
 
+function showRentalFilter(filter) {
+  for (const button of document.querySelectorAll("[data-rental-filter]")) {
+    const selected = button.dataset.rentalFilter === filter;
+    button.setAttribute("aria-pressed", selected);
+    byId(`rentals-${button.dataset.rentalFilter}`).hidden = !selected;
+  }
+}
+
 // ---------- Rental form ----------
+
+async function loadRentalOptions() {
+  const [customers, skis, tariffs] = await Promise.all([
+    api("/api/customers"),
+    api("/api/skis"),
+    api("/api/tariffs"),
+  ]);
+  const { elements } = byId("rental-form");
+  fillSelect(elements.customerId, customers, (customer) => `${customer.name} (${customer.idNumber})`, "Keine Personen registriert");
+  fillSelect(elements.skiId, skis.filter((ski) => ski.available), (ski) => `${ski.id}: ${ski.name}`, "Kein Ski verfügbar");
+  fillSelect(elements.tariffId, tariffs, (tariff) => `${tariff.name} (${formatEuro(tariff.hourlyPriceCents)} / Std.)`, "Keine Tarife angelegt");
+}
 
 // setStartToNow fills in the current local time as datetime-local expects it.
 function setStartToNow() {
@@ -380,6 +402,21 @@ async function updatePricePreview() {
   }
 }
 
+// openRentalForm loads current choices first, so a rented ski is never offered.
+async function openRentalForm() {
+  const form = byId("rental-form");
+  form.reset();
+  try {
+    await loadRentalOptions();
+  } catch (error) {
+    showMessage(error.message, "error");
+    return;
+  }
+  setStartToNow();
+  updatePricePreview();
+  openDialog(form);
+}
+
 function setupRentalForm() {
   const form = byId("rental-form");
   form.addEventListener("input", updatePricePreview);
@@ -394,12 +431,12 @@ function setupRentalForm() {
         durationHours: Number(values.durationHours),
       });
     } catch (error) {
-      await refreshView(); // The ski list may be out of date.
+      // The ski list may be out of date. The original error is the one to show.
+      await Promise.allSettled([loadRentalOptions(), refreshView()]);
       throw error;
     }
-    form.reset();
-    showMessage("Ausleihe angelegt.", "success");
-    await refreshView();
+    showRentalFilter("active");
+    await finishDialog(form, "Ausleihe angelegt.");
   });
 }
 
@@ -437,9 +474,9 @@ async function refreshView() {
 function showView() {
   const name = currentView();
   hideMessage();
-  skiForm.stopEditing();
-  customerForm.stopEditing();
-  tariffForm.stopEditing();
+  for (const dialog of document.querySelectorAll("dialog[open]")) {
+    dialog.close();
+  }
 
   for (const view of document.querySelectorAll(".view")) {
     view.hidden = view.id !== `view-${name}`;
@@ -452,13 +489,29 @@ function showView() {
     }
   }
   if (name === "ausleihen") {
-    setStartToNow(); // A start time from an earlier visit would be out of date.
+    showRentalFilter("active");
   }
   window.scrollTo(0, 0);
   refreshView();
 }
 
+function setupButtons() {
+  byId("new-ski").addEventListener("click", () => skiForm.open());
+  byId("new-customer").addEventListener("click", () => customerForm.open());
+  byId("new-tariff").addEventListener("click", () => tariffForm.open());
+  for (const button of document.querySelectorAll("[data-new-rental]")) {
+    button.addEventListener("click", openRentalForm);
+  }
+  for (const button of document.querySelectorAll("[data-cancel]")) {
+    button.addEventListener("click", () => button.closest("dialog").close());
+  }
+  for (const button of document.querySelectorAll("[data-rental-filter]")) {
+    button.addEventListener("click", () => showRentalFilter(button.dataset.rentalFilter));
+  }
+}
+
 byId("message").addEventListener("click", hideMessage);
 window.addEventListener("hashchange", showView);
+setupButtons();
 setupRentalForm();
 showView();

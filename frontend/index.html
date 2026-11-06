@@ -24,7 +24,10 @@
     <noscript><p>Bitte aktivieren Sie JavaScript, um den Ski-Verleih zu nutzen.</p></noscript>
 
     <section id="view-dashboard" class="view" hidden>
-      <h1>Dashboard</h1>
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <button class="button" type="button" data-new-rental>Neue Ausleihe</button>
+      </div>
       <div class="stats">
         <div class="stat stat-available">
           <span class="stat-label">Verfügbare Ski</span>
@@ -43,32 +46,15 @@
           <strong data-stat="registeredCustomers">–</strong>
         </div>
       </div>
-      <h2>Schnellzugriff</h2>
-      <div class="actions">
-        <a class="button button-secondary" href="#ski">Ski verwalten</a>
-        <a class="button button-secondary" href="#personen">Personen verwalten</a>
-        <a class="button button-secondary" href="#tarife">Tarife bearbeiten</a>
-        <a class="button" href="#ausleihen">Neue Ausleihe</a>
-      </div>
     </section>
 
     <section id="view-ski" class="view" hidden>
-      <h1>Ski-Verwaltung</h1>
-      <form id="ski-form" class="form" novalidate>
-        <h2>Neuen Ski anlegen</h2>
-        <div class="form-grid">
-          <label>Bezeichnung
-            <input name="name" required autocomplete="off" data-error="Bitte geben Sie eine Bezeichnung ein.">
-          </label>
-        </div>
-        <div class="actions">
-          <button class="button" type="submit">Ski anlegen</button>
-          <button class="button button-secondary" type="button" data-cancel hidden>Abbrechen</button>
-        </div>
-      </form>
-      <h2>Alle Ski</h2>
+      <div class="page-header">
+        <h1>Ski-Verwaltung</h1>
+        <button id="new-ski" class="button" type="button">Neuer Ski</button>
+      </div>
       <div class="table-wrap">
-        <table>
+        <table class="with-actions">
           <thead>
             <tr><th>ID</th><th>Bezeichnung</th><th>Verfügbarkeit</th><th>Aktion</th></tr>
           </thead>
@@ -80,33 +66,12 @@
     </section>
 
     <section id="view-personen" class="view" hidden>
-      <h1>Personen</h1>
-      <form id="customer-form" class="form" novalidate>
-        <h2>Neue Person anlegen</h2>
-        <div class="form-grid">
-          <label>Name
-            <input name="name" required autocomplete="off" data-error="Bitte geben Sie einen Namen ein.">
-          </label>
-          <label>Ausweistyp
-            <select name="idType" required data-error="Bitte wählen Sie einen Ausweistyp aus.">
-              <option value="">Bitte wählen …</option>
-              <option>Personalausweis</option>
-              <option>Reisepass</option>
-              <option>Führerschein</option>
-            </select>
-          </label>
-          <label>Ausweisnummer
-            <input name="idNumber" required autocomplete="off" data-error="Bitte geben Sie eine Ausweisnummer ein.">
-          </label>
-        </div>
-        <div class="actions">
-          <button class="button" type="submit">Person anlegen</button>
-          <button class="button button-secondary" type="button" data-cancel hidden>Abbrechen</button>
-        </div>
-      </form>
-      <h2>Registrierte Personen</h2>
+      <div class="page-header">
+        <h1>Personen</h1>
+        <button id="new-customer" class="button" type="button">Neue Person</button>
+      </div>
       <div class="table-wrap">
-        <table>
+        <table class="with-actions">
           <thead>
             <tr><th>ID</th><th>Name</th><th>Ausweistyp</th><th>Ausweisnummer</th><th>Aktion</th></tr>
           </thead>
@@ -118,87 +83,52 @@
     </section>
 
     <section id="view-ausleihen" class="view" hidden>
-      <h1>Ausleihen</h1>
-      <form id="rental-form" class="form" novalidate>
-        <h2>Neue Ausleihe</h2>
-        <div class="form-grid">
-          <label>Person
-            <select name="customerId" required data-error="Bitte wählen Sie eine Person aus."></select>
-          </label>
-          <label>Ski
-            <select name="skiId" required data-error="Bitte wählen Sie einen verfügbaren Ski aus."></select>
-          </label>
-          <label>Tarif
-            <select name="tariffId" required data-error="Bitte wählen Sie einen Tarif aus."></select>
-          </label>
-          <label>Verleihbeginn
-            <input name="start" type="datetime-local" max="9999-12-31T23:59" required data-error="Bitte geben Sie einen gültigen Verleihbeginn ein.">
-          </label>
-          <label>Verleihdauer (Stunden)
-            <input name="durationHours" inputmode="numeric" pattern="[1-9][0-9]*" value="1" required autocomplete="off" data-error="Bitte geben Sie die Verleihdauer in ganzen Stunden ein (mindestens 1).">
-          </label>
-        </div>
-        <p class="price-preview" aria-live="polite">
-          <span>Gesamtpreis</span>
-          <strong id="price-preview">–</strong>
-        </p>
-        <div class="actions">
-          <button class="button" type="submit">Ausleihe anlegen</button>
-        </div>
-      </form>
+      <div class="page-header">
+        <h1>Ausleihen</h1>
+        <button class="button" type="button" data-new-rental>Neue Ausleihe</button>
+      </div>
 
-      <h2>Aktuelle Ausleihen</h2>
-      <div class="table-wrap">
-        <table>
+      <div class="filter" role="group" aria-label="Ausleihen filtern">
+        <button class="filter-button" type="button" data-rental-filter="active" aria-pressed="true">Aktuell (<span id="active-rental-count">–</span>)</button>
+        <button class="filter-button" type="button" data-rental-filter="completed" aria-pressed="false">Abgeschlossen (<span id="completed-rental-count">–</span>)</button>
+      </div>
+
+      <div id="rentals-active" class="table-wrap">
+        <table class="with-actions">
           <thead>
             <tr>
               <th>Nr.</th><th>Person</th><th>Ski</th><th>Beginn</th><th>Geplante Rückgabe</th>
-              <th>Tarif</th><th>Preis</th><th>Status</th><th>Aktion</th>
+              <th>Tarif</th><th>Preis</th><th>Aktion</th>
             </tr>
           </thead>
           <tbody id="active-rental-rows">
-            <tr><td class="table-note" colspan="9">Wird geladen …</td></tr>
+            <tr><td class="table-note" colspan="8">Wird geladen …</td></tr>
           </tbody>
         </table>
       </div>
 
-      <h2>Abgeschlossene Ausleihen</h2>
-      <div class="table-wrap">
+      <div id="rentals-completed" class="table-wrap" hidden>
         <table>
           <thead>
             <tr>
               <th>Nr.</th><th>Person</th><th>Ski</th><th>Beginn</th><th>Geplante Rückgabe</th>
-              <th>Tarif</th><th>Preis</th><th>Status</th><th>Zurückgegeben am</th>
+              <th>Tarif</th><th>Preis</th><th>Zurückgegeben am</th>
             </tr>
           </thead>
           <tbody id="completed-rental-rows">
-            <tr><td class="table-note" colspan="9">Wird geladen …</td></tr>
+            <tr><td class="table-note" colspan="8">Wird geladen …</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
     <section id="view-tarife" class="view" hidden>
-      <h1>Tarife</h1>
-      <form id="tariff-form" class="form" novalidate>
-        <h2>Neuen Tarif anlegen</h2>
-        <div class="form-grid">
-          <label>Tarifname
-            <input name="name" required autocomplete="off" data-error="Bitte geben Sie einen Tarifnamen ein.">
-          </label>
-          <label>Preis pro Stunde (€)
-            <input name="price" inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="z. B. 6,50" required autocomplete="off" data-error="Bitte geben Sie einen gültigen Stundenpreis ein (z. B. 6,50).">
-          </label>
-        </div>
-        <div class="actions">
-          <button class="button" type="submit">Tarif anlegen</button>
-          <button class="button button-secondary" type="button" data-cancel hidden>Abbrechen</button>
-        </div>
-      </form>
-      <p class="hint">Preisänderungen gelten nur für neue Ausleihen. Bestehende Ausleihen behalten ihren Preis.</p>
-      <h2>Alle Tarife</h2>
+      <div class="page-header">
+        <h1>Tarife</h1>
+        <button id="new-tariff" class="button" type="button">Neuer Tarif</button>
+      </div>
       <div class="table-wrap">
-        <table>
+        <table class="with-actions">
           <thead>
             <tr><th>ID</th><th>Tarif</th><th>Preis pro Stunde</th><th>Aktion</th></tr>
           </thead>
@@ -209,6 +139,101 @@
       </div>
     </section>
   </main>
+
+  <dialog id="ski-dialog" aria-labelledby="ski-dialog-title">
+    <form id="ski-form" class="form" novalidate>
+      <h2 id="ski-dialog-title">Neuen Ski anlegen</h2>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="form-grid">
+        <label>Bezeichnung
+          <input name="name" required autocomplete="off" data-error="Bitte geben Sie eine Bezeichnung ein.">
+        </label>
+      </div>
+      <div class="actions">
+        <button class="button" type="submit">Ski anlegen</button>
+        <button class="button button-secondary" type="button" data-cancel>Abbrechen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="customer-dialog" aria-labelledby="customer-dialog-title">
+    <form id="customer-form" class="form" novalidate>
+      <h2 id="customer-dialog-title">Neue Person anlegen</h2>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="form-grid">
+        <label>Name
+          <input name="name" required autocomplete="off" data-error="Bitte geben Sie einen Namen ein.">
+        </label>
+        <label>Ausweistyp
+          <select name="idType" required data-error="Bitte wählen Sie einen Ausweistyp aus.">
+            <option value="">Bitte wählen …</option>
+            <option>Personalausweis</option>
+            <option>Reisepass</option>
+            <option>Führerschein</option>
+          </select>
+        </label>
+        <label>Ausweisnummer
+          <input name="idNumber" required autocomplete="off" data-error="Bitte geben Sie eine Ausweisnummer ein.">
+        </label>
+      </div>
+      <div class="actions">
+        <button class="button" type="submit">Person anlegen</button>
+        <button class="button button-secondary" type="button" data-cancel>Abbrechen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="rental-dialog" aria-labelledby="rental-dialog-title">
+    <form id="rental-form" class="form" novalidate>
+      <h2 id="rental-dialog-title">Neue Ausleihe</h2>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="form-grid">
+        <label>Person
+          <select name="customerId" required data-error="Bitte wählen Sie eine Person aus."></select>
+        </label>
+        <label>Ski
+          <select name="skiId" required data-error="Bitte wählen Sie einen verfügbaren Ski aus."></select>
+        </label>
+        <label>Tarif
+          <select name="tariffId" required data-error="Bitte wählen Sie einen Tarif aus."></select>
+        </label>
+        <label>Verleihbeginn
+          <input name="start" type="datetime-local" max="9999-12-31T23:59" required data-error="Bitte geben Sie einen gültigen Verleihbeginn ein.">
+        </label>
+        <label>Verleihdauer (Stunden)
+          <input name="durationHours" inputmode="numeric" pattern="[1-9][0-9]*" value="1" required autocomplete="off" data-error="Bitte geben Sie die Verleihdauer in ganzen Stunden ein (mindestens 1).">
+        </label>
+      </div>
+      <p class="price-preview" aria-live="polite">
+        <span>Gesamtpreis</span>
+        <strong id="price-preview">–</strong>
+      </p>
+      <div class="actions">
+        <button class="button" type="submit">Ausleihe anlegen</button>
+        <button class="button button-secondary" type="button" data-cancel>Abbrechen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="tariff-dialog" aria-labelledby="tariff-dialog-title">
+    <form id="tariff-form" class="form" novalidate>
+      <h2 id="tariff-dialog-title">Neuen Tarif anlegen</h2>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="form-grid">
+        <label>Tarifname
+          <input name="name" required autocomplete="off" data-error="Bitte geben Sie einen Tarifnamen ein.">
+        </label>
+        <label>Preis pro Stunde (€)
+          <input name="price" inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="z. B. 6,50" required autocomplete="off" data-error="Bitte geben Sie einen gültigen Stundenpreis ein (z. B. 6,50).">
+        </label>
+      </div>
+      <p class="hint">Preisänderungen gelten nur für neue Ausleihen. Bestehende Ausleihen behalten ihren Preis.</p>
+      <div class="actions">
+        <button class="button" type="submit">Tarif anlegen</button>
+        <button class="button button-secondary" type="button" data-cancel>Abbrechen</button>
+      </div>
+    </form>
+  </dialog>
 
   <div id="message" class="message" role="status" hidden></div>
 </body>

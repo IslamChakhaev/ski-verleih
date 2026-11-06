@@ -69,25 +69,25 @@ Die Tests decken die Geschäftsregeln, die Preisberechnung, die Datenhaltung ein
 ### Ski und Personen anlegen
 
 1. **Ski-Verwaltung** oder **Personen** öffnen.
-2. Das Formular ausfüllen und speichern.
-3. Zum Ändern in der Tabelle auf **Bearbeiten** klicken. Die Daten erscheinen dann im Formular.
+2. Oben rechts auf **Neuer Ski** oder **Neue Person** klicken, das Formular ausfüllen und bestätigen.
+3. Zum Ändern in der Tabelle auf **Bearbeiten** klicken. Das Formular öffnet sich mit den vorhandenen Daten.
 
 ### Ausleihe anlegen
 
-1. **Ausleihen** öffnen.
+1. Im **Dashboard** oder unter **Ausleihen** auf **Neue Ausleihe** klicken.
 2. Person, verfügbaren Ski und Tarif wählen.
 3. Verleihbeginn und Verleihdauer in ganzen Stunden eingeben. Der Gesamtpreis wird direkt angezeigt.
 4. **Ausleihe anlegen** klicken. Der Ski ist ab jetzt nicht mehr verfügbar, auch wenn der Verleihbeginn in der Zukunft liegt.
 
 ### Ski zurückgeben
 
-1. Unter **Aktuelle Ausleihen** bei der passenden Ausleihe auf **Zurückgeben** klicken und bestätigen.
-2. Der Ski ist sofort wieder verfügbar. Die Ausleihe erscheint unter **Abgeschlossene Ausleihen**.
+1. Unter **Ausleihen** in der Ansicht **Aktuell** bei der passenden Ausleihe auf **Zurückgeben** klicken und bestätigen.
+2. Der Ski ist sofort wieder verfügbar. Die Ausleihe erscheint in der Ansicht **Abgeschlossen**.
 
 ### Preise ändern
 
 1. **Tarife** öffnen.
-2. Bei einem Tarif auf **Bearbeiten** klicken oder einen neuen Tarif anlegen.
+2. Bei einem Tarif auf **Bearbeiten** klicken oder mit **Neuer Tarif** einen Tarif anlegen.
 3. Den Stundenpreis eingeben, zum Beispiel `6,50`, und speichern.
 
 ## Flexible Preise

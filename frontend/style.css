@@ -111,18 +111,21 @@ main {
   padding: 32px var(--gutter) 48px;
 }
 
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 20px;
+}
+
 h1 {
-  margin: 0 0 20px;
+  margin: 0;
   font-size: 1.6rem;
   font-weight: 650;
   letter-spacing: -0.015em;
   line-height: 1.25;
-}
-
-h2 {
-  margin: 32px 0 10px;
-  font-size: 1.05rem;
-  font-weight: 650;
 }
 
 /* Dashboard */
@@ -242,29 +245,53 @@ h2 {
   background: var(--accent-soft);
 }
 
-/* Forms */
+/* Dialogs and forms */
+
+dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(16, 35, 58, 0.35);
+  color: var(--ink);
+}
+
+dialog::backdrop {
+  background: rgba(16, 35, 58, 0.5);
+}
 
 .form {
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: 24px;
 }
 
 .form h2 {
-  margin: 0 0 14px;
+  margin: 0 0 16px;
+  font-size: 1.15rem;
+  font-weight: 650;
 }
 
-.form.editing {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+.form-error {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border-radius: var(--radius-small);
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px 16px;
   margin-bottom: 16px;
+}
+
+/* A last field without a partner uses the full width. */
+.form-grid > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 label {
@@ -330,9 +357,48 @@ select:focus-visible {
 }
 
 .hint {
-  margin: 12px 0 0;
+  display: none;
+  margin: 0 0 16px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.form.editing .hint {
+  display: block;
+}
+
+/* Rental filter */
+
+.filter {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 3px;
+  border-radius: var(--radius-small);
+  background: var(--slate-soft);
+}
+
+.filter-button {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--slate);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.filter-button:hover {
+  color: var(--ink);
+}
+
+.filter-button[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(16, 35, 58, 0.15);
+  color: var(--ink);
 }
 
 /* Tables */
@@ -369,6 +435,13 @@ th {
 
 td:first-child {
   color: var(--muted);
+}
+
+.with-actions th:last-child,
+.with-actions td:last-child:not(.table-note) {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
 }
 
 tbody tr:last-child td {
@@ -416,16 +489,6 @@ tbody tr:hover {
 .badge-rented {
   background: var(--amber-soft);
   color: var(--amber);
-}
-
-.badge-active {
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-}
-
-.badge-completed {
-  background: var(--slate-soft);
-  color: var(--slate);
 }
 
 /* Feedback */
@@ -500,7 +563,7 @@ tbody tr:hover {
   }
 
   .form {
-    padding: 16px;
+    padding: 18px 16px;
   }
 
   .message {
@@ -552,6 +615,15 @@ tbody tr:hover {
     font-weight: 600;
     text-align: left;
     white-space: nowrap;
+  }
+
+  .with-actions td:last-child:not(.table-note) {
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .with-actions td:last-child::before {
+    content: none;
   }
 
   td.table-note {
