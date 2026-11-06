@@ -187,10 +187,14 @@
     <form id="rental-form" class="form" novalidate>
       <h2 id="rental-dialog-title">Neue Ausleihe</h2>
       <p class="form-error" role="alert" hidden></p>
-      <div class="form-grid">
+      <p id="customer-added" class="form-success" role="status" hidden>Person angelegt.</p>
+      <div class="person-field">
         <label>Person
           <select name="customerId" required data-error="Bitte wählen Sie eine Person aus."></select>
         </label>
+        <button id="new-rental-customer" class="button button-small" type="button">Neue Person</button>
+      </div>
+      <div class="form-grid">
         <label>Ski
           <select name="skiId" required data-error="Bitte wählen Sie einen verfügbaren Ski aus."></select>
         </label>

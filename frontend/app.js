@@ -197,7 +197,8 @@ function handleSubmit(form, action) {
 
 // createEditableForm connects a dialog form that both creates and edits an item.
 // Calling open() starts a new item, and open(item) edits that item. toBody turns
-// form values into the request body; toFormValues does the opposite.
+// form values into the request body; toFormValues does the opposite. A caller
+// that passes onCreated to open() decides what happens after creating the item.
 function createEditableForm({ formId, path, noun, toBody = (values) => values, toFormValues = (item) => item }) {
   const form = byId(formId);
   const title = form.querySelector("h2");
@@ -205,9 +206,11 @@ function createEditableForm({ formId, path, noun, toBody = (values) => values, t
   const createTitle = title.textContent;
   const createLabel = submitButton.textContent;
   let editingId = null;
+  let afterCreate = null;
 
-  function open(item = null) {
+  function open(item = null, onCreated = null) {
     editingId = item?.id ?? null;
+    afterCreate = onCreated;
     form.reset();
     if (item) {
       const values = toFormValues(item);
@@ -226,8 +229,12 @@ function createEditableForm({ formId, path, noun, toBody = (values) => values, t
   handleSubmit(form, async (values) => {
     const body = toBody(values);
     if (editingId === null) {
-      await sendJSON(path, "POST", body);
-      await finishDialog(form, `${noun} angelegt.`);
+      const created = await sendJSON(path, "POST", body);
+      if (afterCreate) {
+        await afterCreate(created);
+      } else {
+        await finishDialog(form, `${noun} angelegt.`);
+      }
     } else {
       await sendJSON(`${path}/${editingId}`, "PUT", body);
       await finishDialog(form, "Änderungen gespeichert.");
@@ -356,6 +363,8 @@ function showRentalFilter(filter) {
 
 // ---------- Rental form ----------
 
+const customerLabel = (customer) => `${customer.name} (${customer.idNumber})`;
+
 async function loadRentalOptions() {
   const [customers, skis, tariffs] = await Promise.all([
     api("/api/customers"),
@@ -363,7 +372,7 @@ async function loadRentalOptions() {
     api("/api/tariffs"),
   ]);
   const { elements } = byId("rental-form");
-  fillSelect(elements.customerId, customers, (customer) => `${customer.name} (${customer.idNumber})`, "Keine Personen registriert");
+  fillSelect(elements.customerId, customers, customerLabel, "Keine Personen registriert");
   fillSelect(elements.skiId, skis.filter((ski) => ski.available), (ski) => `${ski.id}: ${ski.name}`, "Kein Ski verfügbar");
   fillSelect(elements.tariffId, tariffs, (tariff) => `${tariff.name} (${formatEuro(tariff.hourlyPriceCents)} / Std.)`, "Keine Tarife angelegt");
 }
@@ -406,6 +415,7 @@ async function updatePricePreview() {
 async function openRentalForm() {
   const form = byId("rental-form");
   form.reset();
+  byId("customer-added").hidden = true;
   try {
     await loadRentalOptions();
   } catch (error) {
@@ -417,9 +427,68 @@ async function openRentalForm() {
   openDialog(form);
 }
 
+// ---------- New person during a rental ----------
+// The person form moves into the rental dialog, so its fields, validation and
+// saving exist only once. Forms cannot be nested, so the rental form is hidden
+// meanwhile, which keeps everything already entered.
+
+const registeringCustomer = () => byId("rental-dialog").contains(byId("customer-form"));
+
+function startRegistration() {
+  const form = byId("customer-form");
+  byId("customer-added").hidden = true;
+  byId("rental-form").hidden = true;
+  byId("rental-dialog").append(form);
+  byId("rental-dialog").setAttribute("aria-labelledby", "customer-dialog-title");
+  customerForm.open(null, selectNewCustomer);
+  form.elements.name.focus();
+}
+
+function endRegistration() {
+  if (registeringCustomer()) {
+    byId("customer-dialog").append(byId("customer-form"));
+    byId("rental-dialog").setAttribute("aria-labelledby", "rental-dialog-title");
+    byId("rental-form").hidden = false;
+  }
+}
+
+function cancelRegistration() {
+  // While saving, the person may already exist, so the result decides what comes next.
+  if (!byId("customer-form").querySelector("[type=submit]").disabled) {
+    endRegistration();
+    byId("new-rental-customer").focus();
+  }
+}
+
+// selectNewCustomer uses the saved person directly. Reloading the list could
+// fail, and the person would then look unsaved although they already exist.
+async function selectNewCustomer(customer) {
+  endRegistration();
+  const select = byId("rental-form").elements.customerId;
+  select.add(new Option(customerLabel(customer), customer.id));
+  select.value = customer.id;
+  byId("customer-added").hidden = false;
+  select.focus();
+  await refreshView();
+}
+
 function setupRentalForm() {
   const form = byId("rental-form");
+  const dialog = byId("rental-dialog");
   form.addEventListener("input", updatePricePreview);
+  byId("new-rental-customer").addEventListener("click", startRegistration);
+
+  // Esc leaves only the person form, so the rental data stays. Browsers may
+  // ignore preventDefault() on a repeated cancel event, but not on the key itself.
+  const leaveRegistration = (event) => {
+    if (registeringCustomer() && (event.type === "cancel" || event.key === "Escape")) {
+      event.preventDefault();
+      cancelRegistration();
+    }
+  };
+  dialog.addEventListener("keydown", leaveRegistration);
+  dialog.addEventListener("cancel", leaveRegistration);
+  dialog.addEventListener("close", endRegistration);
 
   handleSubmit(form, async (values) => {
     try {
@@ -503,7 +572,13 @@ function setupButtons() {
     button.addEventListener("click", openRentalForm);
   }
   for (const button of document.querySelectorAll("[data-cancel]")) {
-    button.addEventListener("click", () => button.closest("dialog").close());
+    button.addEventListener("click", () => {
+      if (registeringCustomer()) {
+        cancelRegistration();
+      } else {
+        button.closest("dialog").close();
+      }
+    });
   }
   for (const button of document.querySelectorAll("[data-rental-filter]")) {
     button.addEventListener("click", () => showRentalFilter(button.dataset.rentalFilter));

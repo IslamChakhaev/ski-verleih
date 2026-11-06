@@ -172,6 +172,31 @@ func TestDoubleRentalIsConflict(t *testing.T) {
 	a.assertStats(domain.Stats{RentedSkis: 1, TotalSkis: 1, RegisteredCustomers: 1})
 }
 
+// Registering a person during a rental uses two separate requests, so neither
+// one may undo or trigger the other.
+func TestCustomerRegistrationAndRentalStaySeparate(t *testing.T) {
+	a := newSeededAPI(t)
+	a.expect(http.MethodPost, "/api/rentals", rentalBody, http.StatusCreated)
+
+	a.expect(http.MethodPost, "/api/customers", `{"name":" ","idType":"Reisepass","idNumber":"C0000002"}`, http.StatusBadRequest)
+	a.assertStats(domain.Stats{RentedSkis: 1, TotalSkis: 1, RegisteredCustomers: 1})
+
+	created := decode[domain.Customer](t, a.expect(http.MethodPost, "/api/customers", `{"name":"Erika Beispiel","idType":"Reisepass","idNumber":"C0000002"}`, http.StatusCreated))
+	if created.ID != 2 || created.Name != "Erika Beispiel" || created.IDNumber != "C0000002" {
+		t.Errorf("wrong customer: %+v", created)
+	}
+	a.assertStats(domain.Stats{RentedSkis: 1, TotalSkis: 1, RegisteredCustomers: 2})
+
+	secondRental := `{"customerId":2,"skiId":1,"tariffId":1,"start":"2026-01-15T09:00:00+01:00","durationHours":3}`
+	a.expect(http.MethodPost, "/api/rentals", secondRental, http.StatusConflict)
+
+	customers := decode[[]domain.Customer](t, a.expect(http.MethodGet, "/api/customers", "", http.StatusOK))
+	if len(customers) != 2 || customers[1] != created {
+		t.Errorf("failed rental changed customers: %+v", customers)
+	}
+	a.assertStats(domain.Stats{RentedSkis: 1, TotalSkis: 1, RegisteredCustomers: 2})
+}
+
 func TestDoubleReturnIsConflict(t *testing.T) {
 	a := newSeededAPI(t)
 	a.expect(http.MethodPost, "/api/rentals", rentalBody, http.StatusCreated)

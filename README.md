@@ -9,7 +9,7 @@ Prototyp eines Ski-Verleihs mit Web-Dashboard für Aufgabe 1 der Software-Engine
 - **Dashboard:** verfügbare, ausgeliehene und gesamte Ski sowie registrierte Personen, jeweils aus dem aktuellen Datenbestand
 - **Ski-Verwaltung:** Ski anlegen und bearbeiten, Verfügbarkeit einsehen
 - **Personen:** Personen mit Name, Ausweistyp und Ausweisnummer anlegen und bearbeiten
-- **Ausleihen:** Ausleihe mit Person, Ski, Verleihbeginn und Verleihdauer anlegen, Ski zurückgeben
+- **Ausleihen:** Ausleihe mit Person, Ski, Verleihbeginn und Verleihdauer anlegen, neue Personen dabei direkt im Formular registrieren, Ski zurückgeben
 - **Doppelausleihe verhindert:** Ein Ski kann nicht gleichzeitig mehrfach aktiv ausgeliehen sein.
 
 ### Teil b) – Flexible Preise
@@ -75,7 +75,7 @@ Die Tests decken die Geschäftsregeln, die Preisberechnung, die Datenhaltung ein
 ### Ausleihe anlegen
 
 1. Im **Dashboard** oder unter **Ausleihen** auf **Neue Ausleihe** klicken.
-2. Person, verfügbaren Ski und Tarif wählen.
+2. Person, verfügbaren Ski und Tarif wählen. Ist die Person noch nicht registriert, im Formular auf **Neue Person** klicken und ihre Daten eingeben. Nach **Person anlegen** ist sie automatisch ausgewählt, und die bisherigen Angaben zur Ausleihe bleiben erhalten. Die Person bleibt auch dann registriert, wenn die Ausleihe danach nicht zustande kommt.
 3. Verleihbeginn und Verleihdauer in ganzen Stunden eingeben. Der Gesamtpreis wird direkt angezeigt.
 4. **Ausleihe anlegen** klicken. Der Ski ist ab jetzt nicht mehr verfügbar, auch wenn der Verleihbeginn in der Zukunft liegt.
 
